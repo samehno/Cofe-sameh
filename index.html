@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>دفعات الكافي</title>
+<style>
+*{box-sizing:border-box;font-family:system-ui,Tahoma}
+body{margin:0;background:#fef3c7;padding:12px;padding-bottom:100px}
+header{background:#78350f;color:#fff;padding:16px;border-radius:18px;text-align:center}
+header h1{margin:0;font-size:26px}
+.card{background:#fff;border-radius:16px;padding:14px;margin:12px 0}
+input,select,button{width:100%;padding:13px;border-radius:12px;border:1px solid #ddd;margin-top:8px;font-size:16px}
+button{background:#b45309;color:#fff;border:0;font-weight:bold}
+button.del{background:#ef4444} button.edit{background:#f59e0b} button.blue{background:#0ea5e9} button.gray{background:#78716c}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:8px;text-align:center}
+.stat{background:#78350f;color:#fff;padding:12px;border-radius:14px}
+.stat b{display:block;font-size:18px}
+.item{border-bottom:1px solid #eee;padding:12px 0}
+.badge{display:inline-block;padding:3px 10px;border-radius:20px;font-size:13px;background:#fef3c7}
+.flex{display:flex;gap:8px;margin-top:8px} .flex button{margin:0}
+.check{color:#16a34a;font-weight:bold} .debt{color:#dc2626;font-weight:bold}
+.customerBtn{background:#fff7ed;color:#78350f;border:1px solid #fed7aa;padding:12px;margin-top:6px;text-align:right}
+.tabs{display:flex;gap:8px} .tabs button{background:#e7e5e4;color:#444} .tabs button.active{background:#78350f;color:#fff}
+#lockScreen{position:fixed;inset:0;background:#78350f;z-index:99;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;color:#fff;text-align:center}
+#lockScreen input{text-align:center;font-size:22px}
+.hidden{display:none}
+</style>
+</head>
+<body>
+<div id="lockScreen"><h1>☕ دفعات الكافي</h1><p>أدخل كلمة السر - الافتراضية 1234</p><input id="passInput" type="password" placeholder="••••"><button onclick="unlock()" style="background:#fff;color:#78350f">دخول</button></div>
+<header><h1>☕ دفعات الكافي</h1><p>ماركت الكافي</p></header>
+<div class="card stats"><div class="stat">دفعات<b id="totalPay">0</b></div><div class="stat">ديون<b id="totalDebt">0</b></div><div class="stat">باقي<b id="totalLeft">0</b></div><div class="stat">زبائن<b id="custCount">0</b></div></div>
+<div class="card">
+<div class="tabs"><button id="tabPay" class="active" onclick="setTab('pay')">💰 دفعة</button><button id="tabDebt" onclick="setTab('debt')">🧾 دين</button></div>
+<input id="name" placeholder="اسم الزبون *"><input id="phone" placeholder="رقم الجوال"><input id="amount" type="number" placeholder="المبلغ ₪ *">
+<div id="payFields"><select id="method"><option>نقداً</option><option>حوالة بنكية</option><option>PalPay</option><option>Jawwal Pay</option></select></div>
+<div id="debtFields" class="hidden"><input id="items" placeholder="شو أخذ؟"></div>
+<input id="note" placeholder="ملاحظة / رقم الحوالة"><input id="date" type="date">
+<button onclick="save()" id="saveBtn">💾 حفظ</button>
+</div>
+<div class="card"><input id="search" placeholder="🔍 ابحث..." oninput="render()"></div>
+<div class="card"><h3>👥 الزبائن</h3><div id="customers"></div></div>
+<div class="card"><h3>🧾 الحركات</h3><div id="list"></div></div>
+<div class="card"><h3>⚙️ الإعدادات</h3><input id="newPass" placeholder="كلمة سر جديدة"><button onclick="changePass()" class="blue">تغيير كلمة السر</button><button onclick="exportData()" style="background:#292524">📤 نسخة احتياطية</button></div>
+<script>
+let data=JSON.parse(localStorage.getItem('kafi_v2')||'[]');let editId=null,currentTab='pay';let savedPass=localStorage.getItem('kafi_pass')||'1234';
+document.getElementById('date').value=new Date().toISOString().slice(0,10);
+function unlock(){if(document.getElementById('passInput').value===savedPass)document.getElementById('lockScreen').style.display='none';else alert('غلط')}
+function changePass(){let p=document.getElementById('newPass').value;if(p.length<4){alert('4 أرقام على الأقل');return}localStorage.setItem('kafi_pass',p);savedPass=p;alert('تم')}
+function setTab(t){currentTab=t;document.getElementById('tabPay').classList.toggle('active',t==='pay');document.getElementById('tabDebt').classList.toggle('active',t==='debt');document.getElementById('payFields').classList.toggle('hidden',t!=='pay');document.getElementById('debtFields').classList.toggle('hidden',t!=='debt');document.getElementById('saveBtn').innerText=t==='pay'?'💾 حفظ الدفعة':'💾 حفظ الدين'}
+function save(){let name=document.getElementById('name').value.trim();let amount=parseFloat(document.getElementById('amount').value);if(!name||!amount){alert('اكتب الاسم والمبلغ');return}let obj={id:editId||Date.now(),type:currentTab,name,phone:document.getElementById('phone').value,amount,method:currentTab==='pay'?document.getElementById('method').value:'دين',items:document.getElementById('items')?.value||'',note:document.getElementById('note').value,date:document.getElementById('date').value,matched:false};if(editId){data=data.map(d=>d.id===editId?{...obj,matched:d.matched}:d);editId=null}else data.unshift(obj);localStorage.setItem('kafi_v2',JSON.stringify(data));resetForm();render()}
+function resetForm(){['name','phone','amount','note'].forEach(i=>document.getElementById(i).value='');if(document.getElementById('items'))document.getElementById('items').value=''}
+function getBalance(n){let d=data.filter(x=>x.name===n);let debt=d.filter(x=>x.type==='debt').reduce((s,x)=>s+x.amount,0);let pay=d.filter(x=>x.type==='pay').reduce((s,x)=>s+x.amount,0);return{debt,pay,left:debt-pay}}
+function render(){let q=document.getElementById('search').value.toLowerCase();let pays=data.filter(d=>d.type==='pay').reduce((s,d)=>s+d.amount,0);let debts=data.filter(d=>d.type==='debt').reduce((s,d)=>s+d.amount,0);document.getElementById('totalPay').innerText=pays+' ₪';document.getElementById('totalDebt').innerText=debts+' ₪';document.getElementById('totalLeft').innerText=(debts-pays)+' ₪';let names=[...new Set(data.map(d=>d.name))];document.getElementById('custCount').innerText=names.length;document.getElementById('customers').innerHTML=names.filter(n=>n.toLowerCase().includes(q)).map(n=>{let b=getBalance(n);return `<button class="customerBtn" onclick="showCustomer('${n}')">👤 ${n} | دين ${b.debt} | دفع ${b.pay} | الباقي <b>${b.left} ₪</b></button>`}).join('')||'لا يوجد';let filtered=data.filter(d=>d.name.toLowerCase().includes(q));document.getElementById('list').innerHTML=filtered.map(d=>`<div class="item"><b>${d.name}</b> - ${d.amount} ₪ <span class="badge">${d.type==='debt'?'🧾 دين':'💰 '+d.method}</span> ${d.matched?'<span class="check">✓ مطابقة</span>':''}<br><small>${d.date} | ${d.items||''} ${d.note||''}</small><div class="flex"><button class="edit" onclick="editItem(${d.id})">تعديل</button><button class="blue" onclick="toggleMatch(${d.id})">مطابقة</button><button class="del" onclick="delItem(${d.id})">حذف</button></div></div>`).join('')||'لا يوجد'}
+function showCustomer(n){let b=getBalance(n);let t=`كشف حساب - ماركت الكافي\nالزبون: ${n}\nدين: ${b.debt} ₪\nدفع: ${b.pay} ₪\nالباقي: ${b.left} ₪`;if(confirm(t+'\n\nتبعت واتساب؟')){let ph=data.find(d=>d.name===n)?.phone||'';window.open('https://wa.me/'+ph.replace(/[^0-9]/g,'')+'?text='+encodeURIComponent(t))}}
+function editItem(id){let d=data.find(x=>x.id===id);editId=id;setTab(d.type);document.getElementById('name').value=d.name;document.getElementById('phone').value=d.phone;document.getElementById('amount').value=d.amount;if(d.type==='pay')document.getElementById('method').value=d.method;if(document.getElementById('items'))document.getElementById('items').value=d.items||'';document.getElementById('note').value=d.note;document.getElementById('date').value=d.date;window.scrollTo({top:0,behavior:'smooth'})}
+function delItem(id){if(confirm('حذف؟')){data=data.filter(d=>d.id!==id);localStorage.setItem('kafi_v2',JSON.stringify(data));render()}}
+function toggleMatch(id){data=data.map(d=>d.id===id?{...d,matched:!d.matched}:d);localStorage.setItem('kafi_v2',JSON.stringify(data));render()}
+function exportData(){let b=new Blob([JSON.stringify(data)],{type:'application/json'});let a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='kafi-backup.json';a.click()}
+render();
+</script>
+</body>
+</html>
