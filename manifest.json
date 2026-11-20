@@ -1,0 +1,24 @@
+{
+  "name": "دفعات الكافي - Cofe",
+  "short_name": "Cofe",
+  "description": "تطبيق دفعات الكافي لإدارة الحسابات والدفعات",
+  "start_url": "/Cofe-sameh/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#8B4513",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/924/924514.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/924/924514.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}
